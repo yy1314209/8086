@@ -13,50 +13,59 @@ len equ 2
 .startup
     lea bx,block
 
-read_file:
-    mov al,2  ;read
+read_file:    ;open file
+    mov al,2  ;read/write
     mov dx,offset filename
     mov ah,3dh
     int 21h
-    mov handle,ax
+    mov handle,ax ;ax = file handle
 
-start_read:                 
+start_read:   ;read file to buffer              
     mov ah,3fh
     lea dx,read_buffer
     mov bx,handle
-    mov cx,64
+    mov cx,100
     int 21h
     
     mov bx,offset block  
-    mov di,dx
+    mov di,dx  ;read buffer
     mov si,0  ;n
     
-exchange:
-    inc si
+    s:
     push bx
-    mov bl,byte ptr[di]
+    mov ax,0 
+    
+exchange:    ;extract numbers from buffer,and put the numbers into block
+    mov bl,byte ptr[di] ;read a byte from buffer
     sub bl,48
-    mov al,bl
-    mov bl,10
-    mul bl
+    mov cx,10
+    mul cx
+    mov bh,0
+    add ax,bx
     inc di
     mov bl,byte ptr[di]
-    sub bl,48
-    add al,bl
-    dec di
+    cmp bl,48
+    mov dl,bl
+    jb  remove_space
+    jmp exchange
+    
+    ;sub bl,48
+    ;add al,bl
+    ;pop bx
+    ;mov [bx],ax ;write a number into block
+    ;add bx,2
+    
+remove_space:  ;the next byte is space or '\r'
+    inc si
     pop bx
     mov [bx],ax
-    add bx,2
+    add bx,2  
+    cmp dl,' '
+    jb start_sort
+    inc di
+    jmp s
     
-remove_space:    
-    add di,2
-    mov cl,byte ptr[di]
-    cmp cl,13
-    je start_sort
-    add di,1
-    jne exchange
-    
-start_sort:    
+start_sort:  ;bubble sort  
     lea dx,block
     mov ax,si
     push si
@@ -75,7 +84,7 @@ loop2:
     mov bh,bl
     sub bh,ah
     sub bh,1
-    cmp al,bh  ;j   n-i-1
+    cmp al,bh  ;j   n-i-1..
     je  next
     push ax
     push bx
@@ -90,19 +99,19 @@ loop2:
     add dx,2
     mov si,dx
     mov si,ds:[si]
-    cmp di,si
+    cmp di,si  ;compare number[j] with number[j+1]
     ja  above
     pop dx
     pop bx
     pop ax
-    add al,1
+    add al,1    ;j++
     jmp loop2
        
 next:
-    add ah,1
+    add ah,1 ;i++
     jmp loop1
     
-above:
+above:    ;number[j] > number[j+1]  ,exchange them
     mov ax,di
     mov di,dx
     mov ds:[di],ax
@@ -111,11 +120,11 @@ above:
     pop dx
     pop bx
     pop ax
-    add al,1
+    add al,1    ;j++
     jmp loop2    
     
 print:
-    pop si
+    pop si   ;si == n
     mov di,0
     lea bx,block
        
@@ -123,37 +132,29 @@ go_on:
     cmp di,si
     je  stop
     inc di 
-    mov ax,[bx]
+    mov ax,[bx]  ;print number in ax
     push bx
-    mov cx,0
-
-convert:
-    sub ax,16
-    inc cx
-    cmp ax,16
-    jae convert
-    mov dl,al
-    mov al,cl
-    mov bl,16
-    mul bl
-    add al,dl
-    mov cx,0
     
-prin:
-    sub al,10
-    inc cx
-    cmp ax,10
-    jae prin
-    mov bl,al
-    mov al,cl
-    add al,48
-    mov ah,0eh
-    int 10h
-    mov al,bl
-    add al,48
-    int 10h
-    mov al,32 ;space
-    int 10h
+    mov  dx,0     
+    mov  bx, 10
+    mov  cx, 0
+L1:
+    div  bx
+    push dx
+    inc  cx
+    and  ax, ax
+    mov  dx,0
+    jnz  L1
+L2:
+    pop  dx
+    add  dl, 48
+    mov  ah, 2
+    int  21H
+    loop L2
+
+    mov ah,2
+    mov dl,32 ;space
+    int 21h
     pop bx
     add bx,2
     jmp go_on
@@ -162,3 +163,5 @@ stop:
         
 
 .exit
+
+end
