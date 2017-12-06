@@ -5,8 +5,8 @@ input_tips db "input the N:$"
 output_tips db 10,13,"the N! is:$"
 n      dw 0,0
 op1    db 0,0,0,0         ;the first op
-op2    db 50 dup(0)   ;the second op
-result db 50 dup(0)  ;the result  or intermedium result
+op2    db 20 dup(0)   ;the second op
+result db 20 dup(0)  ;the result  or medial result
 multiFlag   dw 0,0
 addFlag    dw 0,0          
 i      dw  0,0
@@ -38,41 +38,29 @@ main proc near
     input_end:
     mov  bx,offset n
     mov  al,[bx]    
-    cmp  al,8
-    ja   greater_than_8
+    cmp  al,9
+    ja   greater_than_9
     mov  ch,0
     mov  cl,al
     mov  dx,0
     mov  ax,1
     mov  bx,0
-    less_than_8:
-        call fac
-        jmp print
-    greater_than_8:
-        cmp  al,9
-        ja   multiLargeNum
-        call fac_spe
-        mov  bx,offset result
-        mov  ax,[bx]
-        mov  dx,[bx+2]
-        jmp  print
-        multiLargeNum:
-                    call init
-                    mov  bx,offset n
-                    mov  ax,[bx]
-                    mov  cx,ax
-                    sub  cx,9
-                    multi_loop:
-                        ;call clear_result
-                        call multiLarge
-                        mov  bx,offset op1
-                        mov  dl,[bx]  
-                        inc  dl      ;op1++
-                        mov  [bx],dl
-                        call copy
-                        loop multi_loop
-                        call print_large
-                        jmp stop 
+    call fac
+    jmp print
+    greater_than_9:
+            call init
+            mov  cx,n
+            sub  cx,9
+            multi_loop:
+                call multiLarge
+                mov  bx,offset op1
+                mov  dl,[bx]  
+                inc  dl      ;op1++
+                mov  [bx],dl
+                call copy
+                loop multi_loop
+                call print_large
+                jmp stop 
     print:
     call output
     jmp  stop
@@ -91,29 +79,12 @@ fac proc near
         inc  bx
         mul  bx
         loop  mult
-    mov  dx,0
     mov  bx,offset result
     mov  [bx],ax
+    mov  [bx+2],dx
     ret
 fac  endp
 
-;--------------fac_spe----------------------------
-fac_spe proc near
-    mov  cx,8
-    mov  dx,0
-    mov  ax,1
-    mov  bx,0
-    call fac
-    mov  cx,9
-    sub  cx,9
-    mov  bx,8
-    next:
-        inc  bx
-        mul  bx
-    mov  bx,offset result
-    mov  [bx],ax
-    mov  [bx+2],dx 
-    ret
 ;---------------init-------------------------------
 init proc near
     mov  bx,offset op2
@@ -144,21 +115,19 @@ init proc near
 ;----------------copy--------------------------------
 copy proc near
     push cx
-    mov  cx,30
+    mov  cx,20
     mov  si,offset op2
     mov  di,offset result
     copy_next:
-    mov  al,[di]
-    mov  [si],al
-    mov  byte ptr[di],0
-    inc  si
-    inc  di
-    loop copy_next
-    mov  bx,0
-    mov  si,offset i
-    add  bx,[si]
-    mov  si,offset j
-    add  bx,[si]
+        mov  al,[di]
+        mov  [si],al
+        mov  byte ptr[di],0
+        inc  si
+        inc  di
+        loop copy_next
+ 
+    mov  bx,i
+    add  bx,j
     mov  si,offset op2
     dec  bx
     mov  dx,[si+bx]
@@ -169,108 +138,78 @@ copy proc near
         mov  byte ptr[si+bx],10
     pop  cx
     ret
-    
-;----------------clear_result----------------------
-clear_result proc near
-    push cx
-    mov  cx,30
-    mov  di,offset result
-    clear_next:
-        mov  byte ptr[di],0
-        inc  di
-        loop  clear_next
-    ret   
+
 ;---------------multiLarge-------------------------
 multiLarge proc near
     mov  bx,offset op1
-    mov  dl,[bx]   ;in  op
-    mov  si,offset i  ;initial i
-    mov  [si],0
+    mov  dl,[bx]   ;in  op1
+    mov  i,0
     loop1:
          cmp dl,10
          je  back
-         mov si,offset multiFlag
-         mov word ptr[si],0
-         mov si,offset addFlag
-         mov word ptr[si],0
+         mov multiFlag,0
+         mov addFlag,0
          mov  di,offset op2
          mov  dh,[di]   ;in op2
-         mov  si,offset j  ;initial j
-         mov  [si],0
+         mov  j,0
     loop2:
          cmp  dh,10
          je   readytoLoop1
-         push dx
+         push dx 
          mov  al,dl
-         mul  dh  ;al
-         mov  si,offset multiFlag
-         mov  dl,[si]
-         add  al,dl
+         mul  dh  ;store in ax
+         mov  dx,multiFlag
+         add  ax,dx
          mov  dl,10
-         div  dl   ;ah reminder  al shiwei
+         div  dl   ;ax/dl   ah reminder  al shiwei
          mov  si,offset multiFlag
          mov  [si],al
-         ;mov  al,ah
-         mov  si,offset i
-         mov  al,[si]
-         mov  si,offset j
-         add  al,[si]
-         push ax
-         mov  ah,0
+
+         mov  dx,i
+         add  dx,j
+
          mov  si,offset result
-         add  si,ax
+         add  si,dx
          mov  dl,[si]
-         pop  ax
+
          mov  al,ah
          mov  ah,0
          add  al,dl
-         mov  si,offset addFlag
-         mov  si,[si]
-         add  ax,si
+
+         mov  dx,addFlag
+         add  ax,dx
          mov  dl,10
-         div  dl  ;ah reminder  al shiwei
+         div  dl  ;ax/dl  ah reminder  al shiwei
          mov  si,offset addFlag
          mov  [si],al
-         mov  si,offset i
-         mov  dx,[si]
-         mov  si,offset j
-         add  dx,[si]
+         
+         mov  dx,i
+         add  dx,j
          mov  si,offset result
          add  si,dx
          mov  [si],ah
          
-         mov  si,offset j    ;j++
-         mov  ax,[si]
-         inc  ax
-         mov  [si],ax
+         inc  j  ;j++
+         
          pop  dx
          inc  di
          mov  dh,[di]
          jmp  loop2
               
-    readytoLoop1:
-         mov  si,offset j  ; result[i + m] += multiFlag + addFlag;
-         mov  dx,[si]
-         mov  si,offset i
-         add  dx,[si]
+    readytoLoop1: 
+         mov  dx,i  ; result[i + m] += multiFlag + addFlag;
+         add  dx,j
          mov  si,offset result
          add  si,dx
-         push si
+         
          mov  al,[si]
-         mov  si,offset multiFlag
-         add  al,[si]
-         mov  si,offset addFlag
-         add  al,[si]
-         pop  si
+         mov  dx,multiFlag
+         add  al,dl
+         mov  dx,addFlag
+         add  al,dl
          mov  [si],al
-         ;mov  ax,10  ;flag
-         ;inc  si
-         ;mov  [si],ax
            
-         mov  si,offset i  
-         mov  ax,[si]
-         inc  ax      ;i++
-         mov  [si],ax
+         inc  i;   i++
          inc  bx
          mov  dl,[bx]
          jmp  loop1
@@ -309,17 +248,14 @@ print_large proc near
     mov  dx,offset output_tips  ;output tips
     mov  ah,9 
     int  21h
-    mov  cx,0
-    mov  si,offset i
-    add  cx,[si]
-    mov  si,offset j
-    add  cx,[si]
+    mov  cx,i
+    add  cx,j
     mov  si,offset op2
     dec  cx
     mov  bx,cx
     mov  dl,[si+bx]
     cmp  dl,0
-    je   do_nothing
+    je   do_dec
     print_loop:
          mov  bx,cx 
          mov  dl,[si+bx]
@@ -327,14 +263,13 @@ print_large proc near
          mov  ah,2
          int  21h
          loop print_loop
-         mov  bx,cx 
-         mov  dl,[si+bx]
+         mov  dl,[si]
          add  dl,48
          mov  ah,2
          int  21h
          ret
           
-    do_nothing:
+    do_dec:
          dec  cx
          jmp  print_loop
        
